@@ -5,10 +5,10 @@ const config     = require('config');
 module.exports = () => {
   const app = express();
 
-  // SETANDO VARIÁVEIS DA APLICAÇÃO
+  // Setando variáveis da aplicação.
   app.set('port', process.env.PORT || config.get('server.port'));
 
-  // MIDDLEWARES
+  // Middlewares: são funções intermediárias em uma aplicação que interceptam as requisições antes que elas cheguem aos endpoints finais.
   app.use(bodyParser.json());
 
   require('../api/routes/caseTimeline')(app);
