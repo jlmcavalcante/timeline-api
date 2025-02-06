@@ -1,1 +1,17 @@
-GET http://localhost:8080/api/v1/case-milestones
+
+GET http://localhost:8080/api/v1/case-milestones/list
+
+###
+
+POST http://localhost:8080/api/v1/case-milestones/screenshot
+content-type: application/json
+
+{
+  "data": "2022-12-21",
+  "type": "Envio de petição",
+  "title": "Propositura da Ação",
+  "unidade": "Representante Legal (Advogado)",
+  "instance": "1ª Grau",
+  "descricao": "Francisca das Chagas Santos propôs Ação de Indenização contra Banco Bradesco Financiamento S.A.",
+  "tipo_ato": "ato_polo_ativo"
+}
