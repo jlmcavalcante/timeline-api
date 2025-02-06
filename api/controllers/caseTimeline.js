@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const ejs = require('ejs');
 const path = require('path');
 const fs = require('fs');
+const formatCaseMilestones = require('../utils/formatMilestones');
 
 module.exports = app => {
   const caseMilestonesDB = app.data.caseMilestones;
@@ -13,15 +14,17 @@ module.exports = app => {
 
   controller.generateScreenshot = async (req, res) => {
     try {
-      const { data, type, title, unidade, instance, descricao, tipo_ato } = req.body;
+      const { process_number, marcos } = req.body;
   
-      if(!data || !type || !title || !unidade || !instance || !descricao || !tipo_ato) {
-        return res.status(400).json({ error: 'Todos os campos são obrigatórios!' });
+      if (!process_number || !marcos) {
+        return res.status(400).json({ error: 'O número do processo e os marcos são obrigatórios!' });
       }
+
+      const formatedMilestones = formatCaseMilestones(marcos);
   
       // Renderiza o HTML dinâmico com os dados do JSON.
       const templatePath = path.join(__dirname, '../views/template.ejs');
-      const html = await ejs.renderFile(templatePath, {data, type, title, unidade, instance, descricao, tipo_ato});
+      const html = await ejs.renderFile(templatePath, { process_number, milestones: formatedMilestones });
     
       // Inicia o Puppeteer e cria uma página
       const browser = await puppeteer.launch({ headless: "new" });
@@ -31,7 +34,7 @@ module.exports = app => {
       await page.setContent(html, { waitUntil: 'networkidle0' });
   
       // Tira o screenshot e armazena como buffer
-      const screenshotBuffer = await page.screenshot({ type: 'png' });
+      const screenshotBuffer = await page.screenshot({ fullPage: true, type: 'png' });
   
       await browser.close();
 

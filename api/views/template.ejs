@@ -3,33 +3,354 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dados da API</title>
+    <title>Linha do Tempo - Processo: <%= process_number %></title>
+    <script src="https://cdn.jsdelivr.net/npm/gojs@3.0.19/release/go.js"></script>
+    <script>
+        class SerpentineLayout extends go.Layout {
+            constructor(init) {
+                super();
+                this._spacing = new go.Size(120, 80);
+                this._wrapCount = 3;
+                this._root = null;
+                this.isViewportSized = true;
+                if (init) Object.assign(this, init);
+            }
+
+            get spacing() {
+                return this._spacing;
+            }
+            set spacing(val) {
+                if (!this._spacing.equals(val)) {
+                this._spacing = val;
+                this.invalidateLayout();
+                }
+            }
+
+            get wrapCount() {
+                return this._wrapCount;
+            }
+            set wrapCount(val) {
+                if (this._wrapCount !== val) {
+                this._wrapCount = val;
+                this.invalidateLayout();
+                }
+            }
+
+            doLayout(collection) {
+                const diagram = this.diagram;
+                if (!diagram) return;
+
+                const coll = this.collectParts(collection);
+                let root = this._root;
+
+                if (!root) {
+                for (const part of coll.iterator) {
+                    if (part instanceof go.Node && part.findLinksInto().count === 0) {
+                    root = part;
+                    break;
+                    }
+                }
+                }
+
+                if (!root) return;
+
+                const spacing = this.spacing;
+                diagram.startTransaction('Serpentine Layout');
+
+                this.arrangementOrigin = this.initialOrigin(this.arrangementOrigin);
+                let x = this.arrangementOrigin.x;
+                let y = this.arrangementOrigin.y;
+                let rowHeight = 0;
+                let increasing = true;
+                let node = root;
+                let count = 0;
+                let rowNodes = [];
+
+                while (node !== null) {
+                rowNodes.push(node);
+                const bounds = this.getLayoutBounds(node);
+
+                let nextlink = null;
+                for (const link of node.findLinksOutOf()) {
+                    if (coll.has(link)) {
+                    nextlink = link;
+                    break;
+                    }
+                }
+
+                let nextnode = nextlink ? nextlink.toNode : null;
+
+                if (increasing) {
+                    node.move(new go.Point(x, y));
+                    x += bounds.width;
+                    rowHeight = Math.max(rowHeight, bounds.height);
+                    count++;
+
+                    if (count >= this._wrapCount || nextnode === null) {
+                    this.alinharLinha(rowNodes, y, rowHeight, increasing);
+                    rowNodes = [];
+                    y += rowHeight + spacing.height;
+                    count = 0;
+                    increasing = false;
+                    x -= spacing.width;
+                    } else {
+                    x += spacing.width;
+                    }
+                } else {
+                    x -= bounds.width;
+                    node.move(new go.Point(x, y));
+                    rowHeight = Math.max(rowHeight, bounds.height);
+                    count++;
+
+                    if (count >= this._wrapCount || nextnode === null) {
+                    this.alinharLinha(rowNodes, y, rowHeight, increasing);
+                    rowNodes = [];
+                    y += rowHeight + spacing.height;
+                    count = 0;
+                    increasing = true;
+                    x += spacing.width;
+                    } else {
+                    x -= spacing.width;
+                    }
+                }
+                node = nextnode;
+                }
+
+                if (rowNodes.length > 0) {
+                this.alinharLinha(rowNodes, y, rowHeight, increasing);
+                }
+
+                diagram.commitTransaction('Serpentine Layout');
+            }
+
+            alinharLinha(rowNodes, y, rowHeight, increasing) {
+                if (rowNodes.length === 0) return;
+
+                const nodeWidth = this.getLayoutBounds(rowNodes[0]).width + this.spacing.width;
+                let startX = this.arrangementOrigin.x;
+
+                if (rowNodes.length < this._wrapCount) {
+                startX = increasing ? this.arrangementOrigin.x : this.arrangementOrigin.x + (this._wrapCount - rowNodes.length) * nodeWidth;
+                }
+
+                let nodeX = increasing ? startX : startX + (rowNodes.length - 1) * nodeWidth;
+
+                for (const node of rowNodes) {
+                const nb = this.getLayoutBounds(node);
+                node.move(new go.Point(nodeX, y + (rowHeight - nb.height) / 2));
+                nodeX += increasing ? nodeWidth : -nodeWidth;
+                }
+            }
+        }
+    </script>
+
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
+        #diagramDiv {
+            width: 2000px;
+            height: 2500px;
         }
+
+        .legend-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            margin: 1.2rem auto 0rem;
+            padding: 1.5rem;
+            border: .1rem solid #d3d3d3;
+            border-radius: 5px;
+            width: fit-content;
+        }
+
+        h3 {
+            margin: 0 1rem 0 0;
+            font-weight: 500;
+            color: #000000;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+            margin: 0 1rem;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            margin-right: 8px;
+            border-radius: 3px;
+            border: .1rem solid #d3d3d3;
+        }
+
         .container {
-            width: 80%;
-            margin: auto;
-            border: 2px solid black;
-            padding: 20px;
-            border-radius: 10px;
-            background: #f9f9f9;
+            position: relative;
         }
-        h1 { color: #333; }
+
+        .container + p {
+            padding: 1rem;
+            text-align: center;
+            font-size: .8rem;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            width: 12%;
+            height: 100px;
+            background: rgb(255, 255, 255);
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Data: <%= data %></h1>
-        <p>Tipo: <%= type %></p>
-        <p>Título: <%= title %></p>
-        <p>Unidade: <%= unidade %></p>
-        <p>Instancia: <%= instance %></p>
-        <p>Descrição: <%= descricao %></p>
-        <p>Tipo de Ato: <%= tipo_ato %></p>
+    <div>
+        <div class="legend-container">
+        <h3>Legenda:</h3>
+        <div class="legend-item">
+            <span class="legend-box" style="background-color: #AED6F1;"></span> Ato do Polo Ativo
+        </div>
+        <div class="legend-item">
+            <span class="legend-box" style="background-color: #A9DFBF;"></span> Ato do Polo Passivo
+        </div>
+        <div class="legend-item">
+            <span class="legend-box" style="background-color: #F9E79F;"></span> Ato do Tribunal
+        </div>
+        <div class="legend-item">
+            <span class="legend-box" style="background-color: #F5B7B1;"></span> Decisão
+        </div>
+        </div>
+
+        <p>Processo: <%= process_number %></p>
+
+        <div class="container">
+        <div class="overlay"></div>
+        <div id="diagramDiv"></div>
+        </div>
+
+        <p>Desenvolvido pelo Laboratório de Inovação do TJPI.</p>
     </div>
+
+  
+    <script>
+        var CaseMilestones = <%- JSON.stringify(milestones) %>;
+
+        function definirCores(tipo) {
+            var cores = {
+            "decisão": { border: "#F5B7B1", background: "#F5B7B1" },
+            "ato_polo_ativo": { border: "#AED6F1", background: "#AED6F1" },
+            "ato_polo_passivo": { border: "#A9DFBF", background: "#A9DFBF" },
+            "ato_tribunal": { border: "#F9E79F", background: "#F9E79F" }
+            };
+            return cores[tipo] || { border: "#0277BD", background: "#F4F4F4" };
+        }
+
+        window.addEventListener("DOMContentLoaded", function() {
+            var $ = go.GraphObject.make;
+            var nodesPerRow = 3;
+
+            var myDiagram = $(go.Diagram, "diagramDiv", {
+            isTreePathToChildren: false,
+            layout: new SerpentineLayout({
+                wrapCount: nodesPerRow,
+                spacing: new go.Size(120, 100)
+            }),
+            isReadOnly: true,
+            allowVerticalScroll: false,
+            allowHorizontalScroll: false,
+            allowZoom: false
+            });
+
+            myDiagram.nodeTemplate = $(go.Node, "Auto",
+            { movable: false, selectable: false },
+            $(go.Shape, "RoundedRectangle",
+                {
+                strokeWidth: 2,
+                width: 300,
+                minSize: new go.Size(300, NaN),
+                margin: new go.Margin(0, 0, 0, 0)
+                },
+                new go.Binding("stroke", "tipo_ato", function(tipo) { return definirCores(tipo).border; }),
+                new go.Binding("fill", "tipo_ato", function(tipo) { return definirCores(tipo).background; })
+            ),
+            $(go.Panel, "Vertical", { alignment: go.Spot.Center, defaultAlignment: go.Spot.Left, padding: 10 },
+                $(go.Panel, "Auto", { stretch: go.Stretch.Fill },
+                $(go.Shape, "RoundedRectangle", { fill: "#FFFFFF", stroke: "transparent", parameter1: 5 }),
+                $(go.TextBlock, {
+                    font: "bold 14px sans-serif",
+                    textAlign: "center",
+                    stroke: "black",
+                    wrap: go.Wrap.Fit,
+                    margin: new go.Margin(8, 0, 8, 0),
+                    maxSize: new go.Size(250, NaN)
+                }, new go.Binding("text", "title"))
+                ),
+                $(go.Panel, "Horizontal", { defaultAlignment: go.Spot.Left, margin: new go.Margin(15, 0, 0, 0) },
+                $(go.TextBlock, { font: "bold 14px sans-serif", stroke: "#000", margin: new go.Margin(0, 8, 0, 10), text: "Data:" }),
+                $(go.TextBlock, { font: "14px sans-serif", stroke: "#000", width: 220, wrap: go.Wrap.Fit },
+                    new go.Binding("text", "data")
+                )
+                ),
+                $(go.Panel, "Horizontal", { defaultAlignment: go.Spot.Left, margin: new go.Margin(12, 0, 0, 0) },
+                $(go.TextBlock, { font: "bold 14px sans-serif", stroke: "#000", margin: new go.Margin(0, 8, 0, 10), text: "Tipo:" }),
+                $(go.TextBlock, { font: "14px sans-serif", stroke: "#000", width: 320, wrap: go.Wrap.Fit },
+                    new go.Binding("text", "type")
+                )
+                ),
+                $(go.Panel, "Horizontal", { defaultAlignment: go.Spot.Left, margin: new go.Margin(12, 0, 0, 0) },
+                $(go.TextBlock, { font: "bold 14px sans-serif", stroke: "#000", margin: new go.Margin(0, 8, 0, 10), text: "Unidade:" }),
+                $(go.TextBlock, { font: "14px sans-serif", stroke: "#000", maxSize: new go.Size(200, NaN), wrap: go.Wrap.Fit },
+                    new go.Binding("text", "unidade")
+                )
+                ),
+                $(go.Panel, "Horizontal", { defaultAlignment: go.Spot.Left, margin: new go.Margin(12, 0, 15, 0) },
+                $(go.TextBlock, { font: "bold 14px sans-serif", stroke: "#000", margin: new go.Margin(0, 8, 0, 10), text: "Instância:" }),
+                $(go.TextBlock, { font: "14px sans-serif", stroke: "#000", width: 300, wrap: go.Wrap.Fit },
+                    new go.Binding("text", "instance")
+                )
+                ),
+                $(go.Panel, "Auto",
+                $(go.Shape, "RoundedRectangle", { alignment: go.Spot.Center, fill: "#FFFFFF", stroke: "transparent", width: 280, parameter1: 5 }),
+                $(go.Panel, "Vertical", { alignment: go.Spot.Left, defaultAlignment: go.Spot.Left },
+                    $(go.TextBlock, { font: "bold 14px sans-serif", stroke: "#000", margin: new go.Margin(12, 8, 4, 8), text: "Descrição 📝:" }),
+                    $(go.TextBlock, {
+                    font: "14px sans-serif",
+                    stroke: "#000",
+                    maxSize: new go.Size(250, NaN),
+                    wrap: go.Wrap.Fit,
+                    margin: new go.Margin(4, 8, 12, 8),
+                    spacingAbove: 3
+                    }, new go.Binding("text", "descricao"))
+                )
+                )
+            )
+            );
+
+            myDiagram.linkTemplate = $(go.Link, {
+                routing: go.Routing.AvoidsNodes,
+                corner: 50,
+                toShortLength: 24,
+                toEndSegmentLength: 24,
+                adjusting: go.LinkAdjusting.Stretch
+            },
+            $(go.Shape, { stroke: "#0277BD", strokeWidth: 20, strokeJoin: "miter" }),
+            $(go.Shape, {
+                toArrow: "Standard",
+                stroke: "#0277BD",
+                fill: "#0277BD",
+                strokeWidth: 14,
+                scale: 1,
+                segmentOffset: new go.Point(-8, 0)
+            })
+            );
+
+            var model = new go.TreeModel();
+            model.nodeParentKeyProperty = "next";
+            model.nodeDataArray = CaseMilestones;
+            myDiagram.model = model;
+        });
+    </script>
 </body>
 </html>
