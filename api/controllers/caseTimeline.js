@@ -3,13 +3,10 @@ const ejs = require('ejs');
 const path = require('path');
 const fs = require('fs');
 const formatCaseMilestones = require('../utils/formatMilestones');
+const formatDateToDDMMYYYY = require('../utils/formatDate');
 
 module.exports = app => {
-  const caseMilestonesDB = app.data.caseMilestones;
-
   const controller = {};
-
-  controller.listCaseMilestones = (req, res) => res.status(200).json(caseMilestonesDB);
 
   controller.generateScreenshot = async (req, res) => {
     try {
@@ -19,7 +16,12 @@ module.exports = app => {
         return res.status(400).json({ error: 'O número do processo e os marcos são obrigatórios!' });
       }
 
-      const formatedMilestones = formatCaseMilestones(marcos);
+      const milestonesNewDate = marcos.map(marco => ({
+        ...marco,
+        data: formatDateToDDMMYYYY(marco.data)
+      }));
+
+      const formatedMilestones = formatCaseMilestones(milestonesNewDate);
   
       // Renderiza o HTML dinâmico com os dados do JSON.
       const templatePath = path.join(__dirname, '../views/template.ejs');
