@@ -44,12 +44,12 @@
                 let root = this._root;
 
                 if (!root) {
-                for (const part of coll.iterator) {
-                    if (part instanceof go.Node && part.findLinksInto().count === 0) {
-                    root = part;
-                    break;
+                    for (const part of coll.iterator) {
+                        if (part instanceof go.Node && part.findLinksInto().count === 0) {
+                            root = part;
+                            break;
+                        }
                     }
-                }
                 }
 
                 if (!root) return;
@@ -67,53 +67,69 @@
                 let rowNodes = [];
 
                 while (node !== null) {
-                rowNodes.push(node);
-                const bounds = this.getLayoutBounds(node);
+                    rowNodes.push(node);
+                    const bounds = this.getLayoutBounds(node);
 
-                let nextlink = null;
-                for (const link of node.findLinksOutOf()) {
-                    if (coll.has(link)) {
-                    nextlink = link;
-                    break;
+                    let nextlink = null;
+                    for (const link of node.findLinksOutOf()) {
+                        if (coll.has(link)) {
+                            nextlink = link;
+                            break;
+                        }
                     }
-                }
 
-                let nextnode = nextlink ? nextlink.toNode : null;
+                    let nextnode = nextlink ? nextlink.toNode : null;
 
-                if (increasing) {
-                    node.move(new go.Point(x, y));
-                    x += bounds.width;
-                    rowHeight = Math.max(rowHeight, bounds.height);
-                    count++;
+                    if (increasing) {
+                        node.move(new go.Point(x, y));
+                        x += bounds.width;
+                        rowHeight = Math.max(rowHeight, bounds.height);
+                        count++;
 
-                    if (count >= this._wrapCount || nextnode === null) {
-                    this.alinharLinha(rowNodes, y, rowHeight, increasing);
-                    rowNodes = [];
-                    y += rowHeight + spacing.height;
-                    count = 0;
-                    increasing = false;
-                    x -= spacing.width;
+                        if (count >= this._wrapCount || nextnode === null) {
+                            this.alinharLinha(rowNodes, y, rowHeight, increasing);
+                            rowNodes = [];
+
+                            y += rowHeight + spacing.height;
+                            count = 0;
+                            increasing = false;
+                            x -= spacing.width;
+
+                            if (nextlink) {
+                                nextlink.fromSpot = go.Spot.Right;
+                                nextlink.toSpot = go.Spot.Right;
+                                nextlink.fromEndSegmentLength = 70;
+                                nextlink.toEndSegmentLength = 70;
+                            }
+                        } else {
+                            x += spacing.width;
+                        }
                     } else {
-                    x += spacing.width;
-                    }
-                } else {
-                    x -= bounds.width;
-                    node.move(new go.Point(x, y));
-                    rowHeight = Math.max(rowHeight, bounds.height);
-                    count++;
+                        x -= bounds.width;
+                        node.move(new go.Point(x, y));
+                        rowHeight = Math.max(rowHeight, bounds.height);
+                        count++;
 
-                    if (count >= this._wrapCount || nextnode === null) {
-                    this.alinharLinha(rowNodes, y, rowHeight, increasing);
-                    rowNodes = [];
-                    y += rowHeight + spacing.height;
-                    count = 0;
-                    increasing = true;
-                    x += spacing.width;
-                    } else {
-                    x -= spacing.width;
+                        if (count >= this._wrapCount || nextnode === null) {
+                            this.alinharLinha(rowNodes, y, rowHeight, increasing);
+                            rowNodes = [];
+
+                            y += rowHeight + spacing.height;
+                            count = 0;
+                            increasing = true;
+                            x += spacing.width;
+
+                            if (nextlink) {
+                                nextlink.fromSpot = go.Spot.Left;
+                                nextlink.toSpot = go.Spot.Left;
+                                nextlink.fromEndSegmentLength = 70;
+                                nextlink.toEndSegmentLength = 70;
+                            }
+                        } else {
+                            x -= spacing.width;
+                        }
                     }
-                }
-                node = nextnode;
+                    node = nextnode;
                 }
 
                 if (rowNodes.length > 0) {
@@ -127,27 +143,38 @@
                 if (rowNodes.length === 0) return;
 
                 const nodeWidth = this.getLayoutBounds(rowNodes[0]).width + this.spacing.width;
+
+                // Definir a posição inicial da linha com base no número total de nós por linha
                 let startX = this.arrangementOrigin.x;
 
                 if (rowNodes.length < this._wrapCount) {
-                startX = increasing ? this.arrangementOrigin.x : this.arrangementOrigin.x + (this._wrapCount - rowNodes.length) * nodeWidth;
+                    // Se a linha estiver incompleta, alinhe com as outras linhas
+                    startX = increasing ? this.arrangementOrigin.x : this.arrangementOrigin.x + (this._wrapCount - rowNodes.length) * nodeWidth;
                 }
 
                 let nodeX = increasing ? startX : startX + (rowNodes.length - 1) * nodeWidth;
 
                 for (const node of rowNodes) {
-                const nb = this.getLayoutBounds(node);
-                node.move(new go.Point(nodeX, y + (rowHeight - nb.height) / 2));
-                nodeX += increasing ? nodeWidth : -nodeWidth;
+                    const nb = this.getLayoutBounds(node);
+                    node.move(new go.Point(nodeX, y + (rowHeight - nb.height) / 2));
+                    // Se estamos aumentando (esquerda → direita), somamos X, se não, subtraímos
+                    nodeX += increasing ? nodeWidth : -nodeWidth;
                 }
             }
         }
     </script>
 
     <style>
-        #diagramDiv {
-            width: 2000px;
-            height: 2500px;
+        /* Para os fins que buscamos devemos utilizar medidas em px */
+        main {
+            width: 1640px;
+            text-align: center;
+        }
+
+        h3 {
+            margin: 0 1rem 0 0;
+            font-weight: 500;
+            color: #000000;
         }
 
         .legend-container {
@@ -155,17 +182,11 @@
             flex-direction: row;
             align-items: center;
             justify-content: center;
-            margin: 1.2rem auto 0rem;
+            margin: 0 auto;
             padding: 1.5rem;
             border: .1rem solid #d3d3d3;
             border-radius: 5px;
             width: fit-content;
-        }
-
-        h3 {
-            margin: 0 1rem 0 0;
-            font-weight: 500;
-            color: #000000;
         }
 
         .legend-item {
@@ -184,58 +205,42 @@
             border: .1rem solid #d3d3d3;
         }
 
-        .container {
-            position: relative;
+        p {
+            margin: 20px;
         }
 
-        .container + p {
-            padding: 1rem;
-            text-align: center;
-            font-size: .8rem;
-        }
-
-        .overlay {
-            position: absolute;
-            top: 0px;
-            left: 0px;
-            width: 12%;
-            height: 100px;
-            background: rgb(255, 255, 255);
-            z-index: 10;
+        #diagramDiv {
+            height: var(--altura-div);
+            width: 1640px;
         }
     </style>
 </head>
 <body>
-    <div>
-        <div class="legend-container">
-        <h3>Legenda:</h3>
-        <div class="legend-item">
-            <span class="legend-box" style="background-color: #AED6F1;"></span> Ato do Polo Ativo
-        </div>
-        <div class="legend-item">
-            <span class="legend-box" style="background-color: #A9DFBF;"></span> Ato do Polo Passivo
-        </div>
-        <div class="legend-item">
-            <span class="legend-box" style="background-color: #F9E79F;"></span> Ato do Tribunal
-        </div>
-        <div class="legend-item">
-            <span class="legend-box" style="background-color: #F5B7B1;"></span> Decisão
-        </div>
-        </div>
-
+    <main>
         <p>Processo: <%= process_number %></p>
 
-        <div class="container">
-        <div class="overlay"></div>
-        <div id="diagramDiv"></div>
+        <div class="legend-container">
+            <h3>Legenda:</h3>
+            <div class="legend-item">
+                <span class="legend-box" style="background-color: #AED6F1;"></span> Ato do Polo Ativo
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background-color: #A9DFBF;"></span> Ato do Polo Passivo
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background-color: #F9E79F;"></span> Ato do Tribunal
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background-color: #F5B7B1;"></span> Decisão
+            </div>
         </div>
 
+        <div id="diagramDiv"></div>
         <p>Desenvolvido pelo Laboratório de Inovação do TJPI.</p>
-    </div>
-
+    </main>
   
     <script>
-        var CaseMilestones = <%- JSON.stringify(milestones) %>;
+        var caseMilestones = <%- JSON.stringify(milestones) %>;
 
         function definirCores(tipo) {
             var cores = {
@@ -346,9 +351,14 @@
             })
             );
 
+            var totalNodes = caseMilestones.length;
+            var totalRows = Math.ceil(totalNodes / nodesPerRow);
+            var networkDivHeight = 500 * totalRows;
+            document.documentElement.style.setProperty('--altura-div', networkDivHeight + 'px');
+
             var model = new go.TreeModel();
             model.nodeParentKeyProperty = "next";
-            model.nodeDataArray = CaseMilestones;
+            model.nodeDataArray = caseMilestones;
             myDiagram.model = model;
         });
     </script>

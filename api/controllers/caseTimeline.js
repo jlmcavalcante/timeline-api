@@ -7,7 +7,6 @@ const formatCaseMilestones = require('../utils/formatMilestones');
 module.exports = app => {
   const caseMilestonesDB = app.data.caseMilestones;
 
-  // Objeto que servirá como container para as funções que serão expostas para manipulação das rotas.
   const controller = {};
 
   controller.listCaseMilestones = (req, res) => res.status(200).json(caseMilestonesDB);
