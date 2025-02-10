@@ -9,11 +9,11 @@ module.exports = () => {
   // Setando variáveis da aplicação.
   app.set('port', process.env.PORT || config.get('server.port'));
 
-  // Middlewares: são funções intermediárias em uma aplicação que interceptam as requisições antes que elas cheguem aos endpoints finais.
+  // Middlewares
   app.use(bodyParser.json());
 
   // Endpoints.
-  consign({cwd: 'api'})
+  consign({cwd: 'src'})
     .then('controllers')
     .then('routes')
     .into(app);

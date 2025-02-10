@@ -1,0 +1,9 @@
+{
+  "server": {
+    "port": 3000
+  },
+  "cache": {
+    "path": "./cache",
+    "expiration_time": 3600000
+  }
+}

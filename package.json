@@ -17,6 +17,7 @@
     "ejs": "^3.1.10",
     "express": "^4.21.2",
     "gojs": "^3.0.19",
+    "ioredis": "^5.5.0",
     "nodemon": "^3.1.9",
     "puppeteer": "^24.2.0",
     "timeline-api": "file:"
