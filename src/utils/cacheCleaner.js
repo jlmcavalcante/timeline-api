@@ -1,52 +1,49 @@
 const fs = require('fs');
 const path = require('path');
 
-const CACHE_DIR = path.resolve('/usr/src/app/cache'); // Caminho dentro do Docker
+const CACHE_DIR = path.resolve('/usr/src/app/cache'); 
 
-// Cria o diretório se ele não existir
+// Garante que a pasta de cache existe ao iniciar
 if (!fs.existsSync(CACHE_DIR)) {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
-  console.log(`📁 Diretório de cache criado: ${CACHE_DIR}`);
+  console.log(`Diretório de cache criado: ${CACHE_DIR}`);
 }
 
 function cleanOldCache() {
   try {
     if (!fs.existsSync(CACHE_DIR)) {
-      console.log("📁 Diretório de cache não encontrado. Nada para limpar.");
+      console.log("Diretório de cache não encontrado. Nada para limpar.");
       return;
     }
 
-    const files = fs.readdirSync(CACHE_DIR);
-    const now = Date.now();
-    const EXPIRATION_TIME = 60 * 60 * 1000; // 1 hora
+    console.log("Executando limpeza automática de cache...");
 
+    // Lê os arquivos dentro da pasta
+    const files = fs.readdirSync(CACHE_DIR);
+    
     if (files.length === 0) {
       console.log("✅ Nenhum arquivo na cache para limpar.");
       return;
     }
 
+    // Remove apenas os arquivos dentro da pasta, sem excluir a pasta em si
     files.forEach(file => {
       const filePath = path.join(CACHE_DIR, file);
-
       try {
-        const stats = fs.statSync(filePath);
-
-        // Se o arquivo for mais antigo que 1 hora, removê-lo
-        if (now - stats.mtimeMs > EXPIRATION_TIME) {
-          fs.unlinkSync(filePath);
-          console.log(`🗑️ Arquivo removido: ${filePath}`);
-        }
-      } catch (statErr) {
-        console.error(`❌ Erro ao obter informações do arquivo ${file}:`, statErr);
+        fs.unlinkSync(filePath);
+        console.log(`✅ Arquivo removido: ${filePath}`);
+      } catch (err) {
+        console.error(`❌ Erro ao remover ${filePath}:`, err);
       }
     });
 
+    console.log("✅ Limpeza automática de cache concluída.");
+    
   } catch (err) {
-    console.error("❌ Erro ao limpar a cache:", err);
+    console.error("❌ Erro ao limpar a cache automaticamente:", err);
   }
 }
 
-// Executa a limpeza a cada 1 hora
 setInterval(cleanOldCache, 60 * 60 * 1000);
 cleanOldCache();
 
