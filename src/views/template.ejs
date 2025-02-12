@@ -182,7 +182,7 @@
             flex-direction: row;
             align-items: center;
             justify-content: center;
-            margin: 0 auto;
+            margin: 12px auto;
             padding: 1.5rem;
             border: .1rem solid #d3d3d3;
             border-radius: 5px;
@@ -213,6 +213,20 @@
             height: var(--altura-div);
             width: 1640px;
         }
+
+        .flowchart-container {
+            position: relative;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            width: 14%;
+            height: 100px;
+            background: rgb(255, 255, 255);
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
@@ -235,7 +249,10 @@
             </div>
         </div>
 
-        <div id="diagramDiv"></div>
+        <div class="flowchart-container">
+            <div class="overlay"></div>
+            <div id="diagramDiv"></div>
+        </div>
         <p>Desenvolvido pelo Laboratório de Inovação do TJPI.</p>
     </main>
   
@@ -244,7 +261,7 @@
 
         function definirCores(tipo) {
             var cores = {
-            "decisão": { border: "#F5B7B1", background: "#F5B7B1" },
+            "decisao": { border: "#F5B7B1", background: "#F5B7B1" },
             "ato_polo_ativo": { border: "#AED6F1", background: "#AED6F1" },
             "ato_polo_passivo": { border: "#A9DFBF", background: "#A9DFBF" },
             "ato_tribunal": { border: "#F9E79F", background: "#F9E79F" }
@@ -353,7 +370,7 @@
 
             var totalNodes = caseMilestones.length;
             var totalRows = Math.ceil(totalNodes / nodesPerRow);
-            var networkDivHeight = 500 * totalRows;
+            var networkDivHeight = 550 * totalRows;
             document.documentElement.style.setProperty('--altura-div', networkDivHeight + 'px');
 
             var model = new go.TreeModel();
