@@ -19,7 +19,7 @@ Esta API gera fluxogramas dinâmicos (.png) a partir de dados processuais fornec
 
 # Endpoints da API
 > [POST] /api/v1/timeline/screenshot
-- Descrição: Gera um fluxograma em PNG a partir de um JSON representando os marcos processuais.
+  - Gera um fluxograma em PNG a partir de um JSON representando os marcos processuais.
 
 > [DELETE] /api/v1/timeline/clear-cache
-- Descrição: Apaga todas as imagens armazenadas na cache da API.
+  - Apaga todas as imagens armazenadas na cache da API.
